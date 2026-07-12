@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#b91c1c" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <title>Archery Countdown</title>
+  <style>
+    :root {
+      --red: #d71920;
+      --yellow: #ffd400;
+      --green: #16a34a;
+      --dark: #111827;
+      --light: #ffffff;
+      --panel: rgba(0,0,0,.22);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: var(--red);
+      font-family: Arial, Helvetica, sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+    }
+
+    body {
+      min-height: 100dvh;
+      color: var(--light);
+    }
+
+    #app {
+      width: 100%;
+      min-height: 100dvh;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      padding: max(12px, env(safe-area-inset-top))
+               max(12px, env(safe-area-inset-right))
+               max(12px, env(safe-area-inset-bottom))
+               max(12px, env(safe-area-inset-left));
+      transition: background-color 180ms linear, color 180ms linear;
+    }
+
+    #app.red { background: var(--red); color: white; }
+    #app.green { background: var(--green); color: white; }
+    #app.yellow { background: var(--yellow); color: #111; }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      min-height: 54px;
+    }
+
+    .phase {
+      font-size: clamp(1.1rem, 2.7vw, 2rem);
+      font-weight: 800;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      text-shadow: 0 2px 4px rgba(0,0,0,.25);
+    }
+
+    .icon-btn {
+      border: 2px solid currentColor;
+      background: rgba(255,255,255,.12);
+      color: inherit;
+      border-radius: 12px;
+      min-width: 52px;
+      min-height: 48px;
+      padding: 8px 13px;
+      font-size: 1.15rem;
+      font-weight: 800;
+      cursor: pointer;
+      backdrop-filter: blur(4px);
+    }
+
+    .main {
+      display: grid;
+      place-items: center;
+      text-align: center;
+      min-height: 0;
+    }
+
+    .timer-wrap {
+      width: 100%;
+      display: grid;
+      place-items: center;
+      gap: clamp(8px, 2vh, 22px);
+    }
+
+    .instruction {
+      font-size: clamp(1.4rem, 4.2vw, 3.6rem);
+      font-weight: 900;
+      line-height: 1.05;
+      text-transform: uppercase;
+      text-shadow: 0 3px 7px rgba(0,0,0,.28);
+      min-height: 1.15em;
+    }
+
+    .timer {
+      font-variant-numeric: tabular-nums;
+      font-size: clamp(7rem, 31vw, 24rem);
+      font-weight: 900;
+      line-height: .82;
+      letter-spacing: -.06em;
+      text-shadow: 0 8px 18px rgba(0,0,0,.28);
+    }
+
+    .subtimer {
+      font-size: clamp(1rem, 2.8vw, 2rem);
+      font-weight: 700;
+      opacity: .95;
+      min-height: 1.2em;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: minmax(120px, 1fr) minmax(150px, 1.25fr);
+      gap: 12px;
+      width: min(900px, 100%);
+      margin: 0 auto;
+    }
+
+    .control-btn {
+      border: 3px solid rgba(255,255,255,.75);
+      border-radius: 18px;
+      min-height: clamp(66px, 10vh, 92px);
+      font-size: clamp(1.35rem, 3vw, 2.2rem);
+      font-weight: 900;
+      text-transform: uppercase;
+      cursor: pointer;
+      box-shadow: 0 6px 0 rgba(0,0,0,.22);
+    }
+
+    .control-btn:active {
+      transform: translateY(3px);
+      box-shadow: 0 3px 0 rgba(0,0,0,.22);
+    }
+
+    #startBtn {
+      background: #0f172a;
+      color: white;
+    }
+
+    #scoreBtn {
+      background: white;
+      color: #b91c1c;
+      border-color: #7f1d1d;
+    }
+
+    #scoreBtn:disabled {
+      opacity: .5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+
+    .time-select {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 4px;
+    }
+
+    .time-btn {
+      border: 2px solid currentColor;
+      background: rgba(255,255,255,.15);
+      color: inherit;
+      min-width: 78px;
+      min-height: 48px;
+      padding: 8px 14px;
+      border-radius: 12px;
+      font-size: clamp(1rem, 2.4vw, 1.35rem);
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    .time-btn.active {
+      background: #111827;
+      color: white;
+      border-color: white;
+      box-shadow: 0 3px 0 rgba(0,0,0,.22);
+    }
+
+    .time-btn:disabled {
+      opacity: .45;
+      cursor: not-allowed;
+    }
+
+    .hint {
+      position: fixed;
+      left: 50%;
+      bottom: calc(max(12px, env(safe-area-inset-bottom)) + 102px);
+      transform: translateX(-50%);
+      background: rgba(0,0,0,.65);
+      color: white;
+      padding: 9px 14px;
+      border-radius: 999px;
+      font-weight: 700;
+      font-size: .95rem;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .2s;
+      white-space: nowrap;
+    }
+
+    .hint.show { opacity: 1; }
+
+    @media (orientation: landscape) and (max-height: 620px) {
+      #app { grid-template-rows: auto 1fr auto; padding-top: 6px; padding-bottom: 8px; }
+      .topbar { min-height: 40px; }
+      .timer { font-size: clamp(5rem, 34vh, 11rem); }
+      .instruction { font-size: clamp(1rem, 5vh, 2rem); }
+      .controls { width: min(760px, 90%); }
+      .control-btn { min-height: 54px; }
+      .hint { bottom: 78px; }
+    }
+
+    @media (max-width: 520px) {
+      .controls { grid-template-columns: 1fr 1fr; }
+      .control-btn { border-radius: 14px; }
+      .phase { max-width: 68vw; }
+    }
+  </style>
+</head>
+<body>
+  <main id="app" class="red" aria-live="polite">
+    <header class="topbar">
+      <div id="phase" class="phase">Ready</div>
+      <button id="fullscreenBtn" class="icon-btn" aria-label="Toggle fullscreen" title="Fullscreen">⛶</button>
+    </header>
+
+    <section class="main">
+      <div class="timer-wrap">
+        <div id="instruction" class="instruction">Press Start</div>
+        <div id="timer" class="timer">4:00</div>
+        <div id="subtimer" class="subtimer">10 seconds to the line, then 4 minutes shooting</div>
+        <div id="timeSelect" class="time-select" aria-label="Select shooting time">
+          <button class="time-btn" data-minutes="2">2 min</button>
+          <button class="time-btn" data-minutes="3">3 min</button>
+          <button class="time-btn active" data-minutes="4">4 min</button>
+        </div>
+      </div>
+    </section>
+
+    <footer class="controls">
+      <button id="startBtn" class="control-btn">Start</button>
+      <button id="scoreBtn" class="control-btn" disabled>Score</button>
+    </footer>
+  </main>
+
+  <div id="hint" class="hint">Space = Start · S = Score · F = Fullscreen</div>
+
+  <script>
+    (() => {
+      const app = document.getElementById('app');
+      const phaseEl = document.getElementById('phase');
+      const instructionEl = document.getElementById('instruction');
+      const timerEl = document.getElementById('timer');
+      const subtimerEl = document.getElementById('subtimer');
+      const startBtn = document.getElementById('startBtn');
+      const scoreBtn = document.getElementById('scoreBtn');
+      const fullscreenBtn = document.getElementById('fullscreenBtn');
+      const hint = document.getElementById('hint');
+      const timeButtons = [...document.querySelectorAll('.time-btn')];
+
+      const LINE_TIME_MS = 10_000;
+      let selectedMinutes = 4;
+      let SHOOT_TIME_MS = selectedMinutes * 60_000;
+      let GREEN_TIME_MS = Math.max(0, SHOOT_TIME_MS - 30_000);
+
+      let audioCtx = null;
+      let state = 'ready';
+      let phaseStartedAt = 0;
+      let rafId = null;
+      let lastDisplayedSecond = null;
+      let wakeLock = null;
+
+      function ensureAudio() {
+        if (!audioCtx) {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+      }
+
+      function singleBuzzer(startTime, duration = 0.38) {
+        const osc1 = audioCtx.createOscillator();
+        const osc2 = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        const filter = audioCtx.createBiquadFilter();
+
+        // Bright electronic whistle with a steady pitch
+        osc1.type = 'triangle';
+        osc2.type = 'sine';
+
+        osc1.frequency.setValueAtTime(1550, startTime);
+        osc2.frequency.setValueAtTime(3100, startTime);
+
+        filter.type = 'bandpass';
+        filter.frequency.value = 1800;
+        filter.Q.value = 5;
+
+        gain.gain.setValueAtTime(0.0001, startTime);
+        gain.gain.exponentialRampToValueAtTime(0.9, startTime + 0.008);
+        gain.gain.setValueAtTime(0.9, startTime + duration - 0.03);
+        gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
+
+        osc1.connect(filter);
+        osc2.connect(filter);
+        filter.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        osc1.start(startTime);
+        osc2.start(startTime);
+        osc1.stop(startTime + duration);
+        osc2.stop(startTime + duration);
+      }
+
+      function buzz(count) {
+        ensureAudio();
+        const now = audioCtx.currentTime + 0.04;
+        const spacing = 0.62;
+        for (let i = 0; i < count; i++) {
+          singleBuzzer(now + i * spacing);
+        }
+        if (navigator.vibrate) {
+          const pattern = [];
+          for (let i = 0; i < count; i++) {
+            pattern.push(420);
+            if (i < count - 1) pattern.push(190);
+          }
+          navigator.vibrate(pattern);
+        }
+      }
+
+      function formatTime(ms) {
+        const totalSeconds = Math.max(0, Math.ceil(ms / 1000));
+        const mins = Math.floor(totalSeconds / 60);
+        const secs = totalSeconds % 60;
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+      }
+
+      function setColour(name) {
+        app.classList.remove('red', 'yellow', 'green');
+        app.classList.add(name);
+        const colour = name === 'red' ? '#d71920' : name === 'yellow' ? '#ffd400' : '#16a34a';
+        document.querySelector('meta[name="theme-color"]').setAttribute('content', colour);
+      }
+
+      async function requestWakeLock() {
+        try {
+          if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen');
+        } catch (_) {}
+      }
+
+      async function releaseWakeLock() {
+        try {
+          if (wakeLock) await wakeLock.release();
+        } catch (_) {}
+        wakeLock = null;
+      }
+
+      function showReady(message = 'Press Start') {
+        cancelAnimationFrame(rafId);
+        state = 'ready';
+        setColour('red');
+        phaseEl.textContent = 'Ready';
+        instructionEl.textContent = message;
+        timerEl.textContent = `${selectedMinutes}:00`;
+        subtimerEl.textContent = `10 seconds to the line, then ${selectedMinutes} minutes shooting`;
+        timeButtons.forEach(btn => btn.disabled = false);
+        startBtn.textContent = 'Start';
+        startBtn.disabled = false;
+        scoreBtn.disabled = true;
+        lastDisplayedSecond = null;
+        releaseWakeLock();
+      }
+
+      function startSequence() {
+        if (state !== 'ready') return;
+        ensureAudio();
+        requestWakeLock();
+        state = 'line';
+        phaseStartedAt = performance.now();
+        lastDisplayedSecond = null;
+        setColour('yellow');
+        phaseEl.textContent = 'Archers to the line';
+        instructionEl.textContent = 'Archers to the line';
+        subtimerEl.textContent = 'Shooting begins when the timer reaches zero';
+        startBtn.disabled = true;
+        scoreBtn.disabled = false;
+        timeButtons.forEach(btn => btn.disabled = true);
+        buzz(2);
+        tick();
+      }
+
+      function beginShooting() {
+        state = 'shooting';
+        phaseStartedAt = performance.now();
+        lastDisplayedSecond = null;
+        setColour('green');
+        phaseEl.textContent = 'Shooting';
+        instructionEl.textContent = 'Shoot';
+        subtimerEl.textContent = 'Green until 0:30';
+        buzz(1);
+      }
+
+      function finishShooting() {
+        state = 'finished';
+        setColour('red');
+        phaseEl.textContent = 'Stop';
+        instructionEl.textContent = 'Stop shooting';
+        timerEl.textContent = '0:00';
+        subtimerEl.textContent = 'Press Score to reset';
+        startBtn.disabled = true;
+        scoreBtn.disabled = false;
+        buzz(3);
+        releaseWakeLock();
+      }
+
+      function tick(now = performance.now()) {
+        if (state === 'line') {
+          const remaining = LINE_TIME_MS - (now - phaseStartedAt);
+          const sec = Math.max(0, Math.ceil(remaining / 1000));
+          if (sec !== lastDisplayedSecond) {
+            timerEl.textContent = `0:${sec.toString().padStart(2, '0')}`;
+            lastDisplayedSecond = sec;
+          }
+          if (remaining <= 0) beginShooting();
+        }
+
+        if (state === 'shooting') {
+          const elapsed = now - phaseStartedAt;
+          const remaining = SHOOT_TIME_MS - elapsed;
+          const sec = Math.max(0, Math.ceil(remaining / 1000));
+
+          if (sec !== lastDisplayedSecond) {
+            timerEl.textContent = formatTime(remaining);
+            lastDisplayedSecond = sec;
+          }
+
+          if (elapsed >= GREEN_TIME_MS) {
+            setColour('yellow');
+            phaseEl.textContent = 'Final 30 seconds';
+            instructionEl.textContent = '30 seconds';
+            subtimerEl.textContent = 'Finish the end';
+          }
+
+          if (remaining <= 0) finishShooting();
+        }
+
+        if (state === 'line' || state === 'shooting') {
+          rafId = requestAnimationFrame(tick);
+        }
+      }
+
+      function scoreReset() {
+        if (state === 'ready') return;
+        showReady('Ready for next end');
+      }
+
+      async function toggleFullscreen() {
+        try {
+          if (!document.fullscreenElement) {
+            await document.documentElement.requestFullscreen();
+          } else {
+            await document.exitFullscreen();
+          }
+        } catch (_) {}
+      }
+
+      startBtn.addEventListener('click', startSequence);
+      scoreBtn.addEventListener('click', scoreReset);
+
+      timeButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          if (state !== 'ready') return;
+          selectedMinutes = Number(btn.dataset.minutes);
+          SHOOT_TIME_MS = selectedMinutes * 60_000;
+          GREEN_TIME_MS = Math.max(0, SHOOT_TIME_MS - 30_000);
+          timeButtons.forEach(b => b.classList.toggle('active', b === btn));
+          timerEl.textContent = `${selectedMinutes}:00`;
+          subtimerEl.textContent = `10 seconds to the line, then ${selectedMinutes} minutes shooting`;
+        });
+      });
+
+      fullscreenBtn.addEventListener('click', toggleFullscreen);
+
+      document.addEventListener('keydown', (e) => {
+        const key = e.key.toLowerCase();
+        if (e.code === 'Space') {
+          e.preventDefault();
+          if (state === 'ready') startSequence();
+        } else if (key === 's') {
+          scoreReset();
+        } else if (key === 'f') {
+          toggleFullscreen();
+        }
+      });
+
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible' && (state === 'line' || state === 'shooting')) {
+          requestWakeLock();
+        }
+      });
+
+      let hintTimer;
+      function showHint() {
+        hint.classList.add('show');
+        clearTimeout(hintTimer);
+        hintTimer = setTimeout(() => hint.classList.remove('show'), 3500);
+      }
+      document.addEventListener('mousemove', showHint, { once: true });
+      document.addEventListener('touchstart', showHint, { once: true });
+
+
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('./service-worker.js').catch(() => {});
+        });
+      }
+
+      showReady();
+    })();
+  </script>
+</body>
+</html>
