@@ -1,11 +1,5 @@
 ARCHERY COUNTDOWN APP
 
-How to run:
-1. Publish the whole folder to Netlify, GitHub Pages, or another HTTPS host.
-2. Open the public site once while online.
-3. After that, it will continue to work offline from the same browser/device.
-4. On supported phones, use “Add to Home Screen” to install it like an app.
-
 Features:
 - Selectable 2, 3, or 4 minute shooting time.
 - 10-second yellow “Archers to the line” countdown.
